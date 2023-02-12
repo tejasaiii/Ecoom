@@ -1,7 +1,9 @@
 const User=require('../models/userModel')
 const asyncHandler=require('express-async-handler');
+const jwt = require("jsonwebtoken");
 const { generateToken } = require('../config/jwtToken');
 const validateMongoDbId = require('../utils/validateMongoDb');
+const { generateRefreshToken } = require('../config/refreshtoken');
 
 // Create a User ----------------------------------------------
 
@@ -39,6 +41,18 @@ const createUser = asyncHandler(async (req, res) => {
     // check if user exist or not
     const findUser=await User.findOne({email:email})
     if(findUser && (await findUser.isPasswordMatched(password))){
+      const refreshToken = await generateRefreshToken(findUser?._id);
+      const updateuser = await User.findByIdAndUpdate(
+        findUser._id,
+        {
+          refreshToken: refreshToken,
+        },
+        { new: true }
+      );
+      res.cookie("refreshToken", refreshToken, {
+        httpOnly: true,
+        maxAge: 72 * 60 * 60 * 1000,
+      });
       res.json({
         _id: findUser?._id,
         firstname: findUser?.firstname,
@@ -51,6 +65,24 @@ const createUser = asyncHandler(async (req, res) => {
       throw new Error('Invalid Credentials')
     }
   })
+
+  // handle refresh token or Verify token
+
+const handleRefreshToken = asyncHandler(async (req, res) => {
+  const cookie = req.cookies;
+  console.log(cookie)
+  if (!cookie?.refreshToken) throw new Error("No Refresh Token in Cookies");
+  const refreshToken = cookie.refreshToken;
+  const user = await User.findOne({ refreshToken });
+  if (!user) throw new Error(" No Refresh token present in db or not matched");
+  jwt.verify(refreshToken, process.env.JWT_SECRET, (err, decoded) => {
+    if (err || user.id !== decoded.id) {
+      throw new Error("There is something wrong with refresh token");
+    }
+    const accessToken = generateToken(user?._id);
+    res.json({ accessToken });
+  });
+});
 
   // Update a user
 
@@ -172,5 +204,6 @@ const unblockUser = asyncHandler(async (req, res) => {
     deleteaUser,
     updatedUser,
     blockUser,
-    unblockUser
+    unblockUser,
+    handleRefreshToken
   }

@@ -7,3 +7,4 @@ Register a user
     "password":"varun123"
 }
 CRUD
+1. Install cookie-parser for refresh-token
