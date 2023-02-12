@@ -1,0 +1,8 @@
+Register a user
+{
+    "firstname":"varun",
+    "lastname":"teja",
+    "email":"teja@gmail.com",
+    "mobile":"1234567899",
+    "password":"varun123"
+}
