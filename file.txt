@@ -6,3 +6,4 @@ Register a user
     "mobile":"1234567899",
     "password":"varun123"
 }
+CRUD
